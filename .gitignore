@@ -1,0 +1,23 @@
+# Python cache and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# IDE and OS files
+.idea/
+.DS_Store
+Thumbs.db
+
+# Personal source photos and generated results
+input/*
+!input/.gitkeep
+output/*
+!output/.gitkeep
+
+# Local test and coverage artifacts
+.coverage
+htmlcov/
+coverage.xml
