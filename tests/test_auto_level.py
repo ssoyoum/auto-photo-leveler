@@ -31,10 +31,18 @@ class AutoLevelTests(unittest.TestCase):
     def test_rotate_image_expands_canvas(self):
         image = np.zeros((100, 200, 3), dtype=np.uint8)
 
-        rotated = rotate_image(image, 15)
+        rotated = rotate_image(image, 15, crop=False)
 
         self.assertGreater(rotated.shape[0], image.shape[0])
         self.assertGreater(rotated.shape[1], image.shape[1])
+
+    def test_rotate_image_crops_generated_empty_corners_by_default(self):
+        image = np.full((100, 200, 3), 255, dtype=np.uint8)
+
+        rotated = rotate_image(image, 15)
+
+        self.assertEqual(int(rotated.min()), 255)
+        self.assertLess(rotated.shape[1], 200)
 
     def test_process_directory_writes_each_supported_image(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
