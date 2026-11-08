@@ -395,6 +395,25 @@ def make_review_canvas(
     return result
 
 
+# waitKeyEx arrow codes: Windows, Linux GTK, macOS.
+LEFT_ARROW_KEYS = {2424832, 65361, 63234}
+RIGHT_ARROW_KEYS = {2555904, 65363, 63235}
+
+
+def _review_key(raw_key: int) -> str | None:
+    """Map a cv2.waitKeyEx code to a review command character."""
+
+    if raw_key in LEFT_ARROW_KEYS:
+        return "a"
+    if raw_key in RIGHT_ARROW_KEYS:
+        return "d"
+    # Special keys keep 0xFFxx in the low 16 bits; masking them would alias letters (Up 65362 -> "R").
+    char = raw_key & 0xFF
+    if raw_key < 0 or raw_key & 0xFF00 or char == 0:
+        return None
+    return "n" if char == 27 else chr(char).lower()
+
+
 def review_directory(
     input_dir: Path,
     output_dir: Path,
@@ -408,7 +427,8 @@ def review_directory(
     saved = 0
     skipped = 0
     window_name = "Auto Photo Leveler - Review"
-    cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+    # WINDOW_KEEPRATIO is Qt-only; on the Win32 backend a resizable window stretches the canvas.
+    cv2.namedWindow(window_name, cv2.WINDOW_AUTOSIZE)
 
     try:
         for input_path in find_images(input_dir, recursive=recursive):
@@ -425,26 +445,26 @@ def review_directory(
             while True:
                 preview = rotate_image(image, current_angle)
                 cv2.imshow(window_name, make_review_canvas(image, preview, current_angle))
-                key = cv2.waitKey(0) & 0xFF
+                key = _review_key(cv2.waitKeyEx(0))
 
-                if key in (ord("a"), 81):
+                if key == "a":
                     current_angle -= angle_step
-                elif key in (ord("d"), 83):
+                elif key == "d":
                     current_angle += angle_step
-                elif key == ord("r"):
+                elif key == "r":
                     current_angle = auto_angle
-                elif key in (ord("s"), ord("o")):
+                elif key in ("s", "o"):
                     output_dir.mkdir(parents=True, exist_ok=True)
                     output_path = output_dir / input_path.name
-                    selected = preview if key == ord("s") else image
+                    selected = preview if key == "s" else image
                     if not cv2.imwrite(str(output_path), selected):
                         raise OSError(f"Could not write image: {output_path}")
                     saved += 1
                     break
-                elif key in (ord("n"), 27):
+                elif key == "n":
                     skipped += 1
                     break
-                elif key == ord("q"):
+                elif key == "q":
                     return saved, skipped
     finally:
         cv2.destroyAllWindows()
